@@ -46,11 +46,11 @@
 				}
 				break;
 			case 'r':
-				var topLevelUrl = window.location.protocol + '//' + window.location.hostname;
+				var topLevelUrl = window.location.protocol + '//' + window.location.href.split(/\/\/(.*)?/)[1];
 
-				if (topLevelUrl == JSMTS.key) {
+				if (JSMTS.key.length > 0 && topLevelUrl.slice(0,JSMTS.key.length) === JSMTS.key) {
 					CURRENT_SITE_TYPE = FLAG_MOBILE;
-				} else if (topLevelUrl == JSMTS.key2) {
+				} else if (JSMTS.key2.length > 0 && topLevelUrl.slice(0,JSMTS.key2.length) === JSMTS.key2) {
 					CURRENT_SITE_TYPE = FLAG_TABLET;
 				} else {
 					CURRENT_SITE_TYPE = FLAG_DESKTOP;
@@ -187,6 +187,11 @@
 		'eraseCookie' : eraseCookie
 	};
 
+	function escapeRegex(s) 
+	{
+		return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+	};
+
 	// BEGIN MAIN LOGIC
 
 	// if no themes are configured, do nothing
@@ -217,7 +222,14 @@
 				window.location.replace(appendQuery(removeQuery(window.location.href, JSMTS.key), JSMTS.key, FLAG_MOBILE));
 				break;
 			case 'r':
-				window.location.replace(JSMTS.key + window.location.pathname);
+				var topLevelUrl = window.location.protocol + '//' + window.location.href.split(/\/\/(.*)?/)[1],
+					redirUrl;
+				if (CURRENT_SITE_TYPE == FLAG_TABLET) {
+					redirUrl = JSMTS.key + topLevelUrl.replace(new RegExp('^' + escapeRegex(JSMTS.key2), 'i'), '');
+				} else {
+					redirUrl = JSMTS.key + topLevelUrl.replace(new RegExp('^' + escapeRegex(JSMTS.base), 'i'), '');
+				}
+				window.location.replace(redirUrl);
 				break;
 			case 'c':
 				// :TODO:
@@ -229,7 +241,14 @@
 				window.location.replace(appendQuery(removeQuery(window.location.href, JSMTS.key), JSMTS.key, FLAG_TABLET));
 				break;
 			case 'r':
-				window.location.replace(JSMTS.key2 + window.location.pathname);
+				var topLevelUrl = window.location.protocol + '//' + window.location.href.split(/\/\/(.*)?/)[1],
+					redirUrl;
+				if (CURRENT_SITE_TYPE == FLAG_MOBILE) {
+					redirUrl = JSMTS.key2 + topLevelUrl.replace(new RegExp('^' + escapeRegex(JSMTS.key), 'i'), '');
+				} else {
+					redirUrl = JSMTS.key2 + topLevelUrl.replace(new RegExp('^' + escapeRegex(JSMTS.base), 'i'), '');
+				}
+				window.location.replace(redirUrl);
 				break;
 			case 'c':
 				// :TODO:
@@ -245,9 +264,15 @@
 				}
 				break;
 			case 'r':
-				var topLevelUrl = window.location.protocol + '//' + window.location.hostname;
-				if (topLevelUrl != JSMTS.base) {
-					window.location.replace(JSMTS.base + window.location.pathname);
+				var topLevelUrl = window.location.protocol + '//' + window.location.href.split(/\/\/(.*)?/)[1],
+					redirUrl;
+				if (topLevelUrl.slice(0,JSMTS.base.length) !== JSMTS.base) {
+					if (CURRENT_SITE_TYPE == FLAG_MOBILE) {
+						redirUrl = JSMTS.base + topLevelUrl.replace(new RegExp('^' + escapeRegex(JSMTS.key), 'i'), '');
+					} else {
+						redirUrl = JSMTS.base + topLevelUrl.replace(new RegExp('^' + escapeRegex(JSMTS.key2), 'i'), '');
+					}
+					window.location.replace(redirUrl);
 				}
 				break;
 			case 'c':
