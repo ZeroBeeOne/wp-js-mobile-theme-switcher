@@ -114,7 +114,7 @@
 
 		for (; i < l; ++i) {
 			qs[i] = qs[i].split('=');
-			result[qs[i][0]] = qs[i].length > 1 ? decodeURIComponent(qs[i][1]) : true;
+			result[qs[i][0]] = qs[i].length > 1 ? decodeURIComponent(qs[i][1]) : '';
 		}
 
 		return result;
