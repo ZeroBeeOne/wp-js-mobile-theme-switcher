@@ -264,13 +264,15 @@
 				}
 				break;
 			case 'r':
-				var topLevelUrl = window.location.protocol + '//' + window.location.href.split(/\/\/(.*)?/)[1],
+				var host = window.location.href.split(/\/\/(.*)?/)[1],
+					baseHost = JSMTS.base.split(/\/\/(.*)?/)[1],
+					topLevelUrl = window.location.protocol + '//' + host,
 					redirUrl;
-				if (topLevelUrl.slice(0,JSMTS.base.length) !== JSMTS.base) {
+				if (host.slice(0,baseHost.length) !== baseHost) {
 					if (CURRENT_SITE_TYPE == FLAG_MOBILE) {
-						redirUrl = JSMTS.base + topLevelUrl.replace(new RegExp('^' + escapeRegex(JSMTS.key), 'i'), '');
+						redirUrl = window.location.protocol + '//' + baseHost + host.replace(new RegExp('^' + escapeRegex(JSMTS.key.split(/\/\/(.*)?/)[1]), 'i'), '');
 					} else {
-						redirUrl = JSMTS.base + topLevelUrl.replace(new RegExp('^' + escapeRegex(JSMTS.key2), 'i'), '');
+						redirUrl = window.location.protocol + '//' + baseHost + host.replace(new RegExp('^' + escapeRegex(JSMTS.key2.split(/\/\/(.*)?/)[1]), 'i'), '');
 					}
 					window.location.replace(redirUrl);
 				}
