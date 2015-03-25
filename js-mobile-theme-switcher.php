@@ -19,7 +19,7 @@ Version: 1.0
  */
 abstract class JSMobileThemeSwitcher
 {
-	const SCRIPT_VERSION = '1.2';
+	const SCRIPT_VERSION = '1.3';
 
 	private static $options;
 	private static $themes;
