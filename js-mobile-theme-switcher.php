@@ -254,10 +254,10 @@ abstract class JSMobileThemeSwitcher
 	// alter all altered URLs back to main site for canonical tags
 	public static function alterCanonicalLink($link)
 	{
-		return self::mungeCanonicalUrl($link, true);
+		return self::mungeCanonicalUrl($link, true, true);
 	}
 
-	private static function mungeCanonicalUrl($link, $reverse = false)
+	private static function mungeCanonicalUrl($link, $reverse = false, $filter = false)
 	{
 		$mode = self::getPersistedOverrideValue();
 		$opts = self::getOptions();
@@ -267,15 +267,15 @@ abstract class JSMobileThemeSwitcher
 		}
 
 		if ($reverse) {
-			list($search, $replace) = self::getURLSearchRegexes($mode, self::FLAG_DESKTOP);
+			list($search, $replace) = self::getURLSearchRegexes($mode, self::FLAG_DESKTOP, $filter);
 		} else {
-			list($search, $replace) = self::getURLSearchRegexes(self::FLAG_DESKTOP, $mode);
+			list($search, $replace) = self::getURLSearchRegexes(self::FLAG_DESKTOP, $mode, $filter);
 		}
 
 		return preg_replace($search, $replace, $link);
 	}
 
-	private static function getURLSearchRegexes($currentMode, $desiredMode)
+	private static function getURLSearchRegexes($currentMode, $desiredMode, $filter = false)
 	{
 		$opts = self::getOptions();
 
@@ -291,6 +291,10 @@ abstract class JSMobileThemeSwitcher
 				break;
 		}
 
+		if ($filter) {
+			$search = apply_filters('JSMTS_URL_search',$search,$currentMode,$desiredMode,$opts);
+		}
+
 		switch ($desiredMode) {
 			case self::FLAG_MOBILE:
 				$replace = $opts['state_key'];
@@ -301,6 +305,10 @@ abstract class JSMobileThemeSwitcher
 			default:
 				$replace = get_option('siteurl');
 				break;
+		}
+
+		if ($filter) {
+			$replace = apply_filters('JSMTS_URL_replace',$replace,$currentMode,$desiredMode,$opts);
 		}
 
 		return array($search, $replace);
