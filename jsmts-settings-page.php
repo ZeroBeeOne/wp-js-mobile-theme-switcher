@@ -77,7 +77,16 @@ natcasesort($themes);
 		<small>(<span>Select to automatically generate canonical link tags on the mobile and tablet theme templates which will redirect search engines to the main desktop site. You should enable this unless your themes already output these themselves or you know what you are doing.</span>)</small>
 	</label>
 </p>
-
+<p>
+	<label for="jsmts_force_protocol">
+		Force Protocol:
+		<select name="force_protocol" id="jsmts_force_protocol">
+			<option value="none"<?php selected('none', $options['force_protocol']); ?>>None (respect browser choice)</option>
+			<option value="http"<?php selected('http', $options['force_protocol']); ?>>HTTP</option>
+			<option value="https"<?php selected('https', $options['force_protocol']); ?>>HTTPS</option>
+		</select>
+	</label>
+</p>
 <p id="rechecking">
 	<span>Re-check location:</span><br />
 	<label><input type="radio" name="check_type" value="always"<?php if (!$options['do_flag']) echo ' checked="checked"'; ?> /> On every page view</label><br />
