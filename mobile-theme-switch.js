@@ -48,9 +48,9 @@
 			case 'r':
 				var topLevelUrl = window.location.protocol + '//' + window.location.href.split(/\/\/(.*)?/)[1];
 
-				if (JSMTS.key.length > 0 && topLevelUrl.slice(0,JSMTS.key.length) === JSMTS.key) {
+				if (compareURLToKey(topLevelUrl,JSMTS.key)) {
 					CURRENT_SITE_TYPE = FLAG_MOBILE;
-				} else if (JSMTS.key2.length > 0 && topLevelUrl.slice(0,JSMTS.key2.length) === JSMTS.key2) {
+				} else if (compareURLToKey(topLevelUrl,JSMTS.key2)) {
 					CURRENT_SITE_TYPE = FLAG_TABLET;
 				} else {
 					CURRENT_SITE_TYPE = FLAG_DESKTOP;
@@ -147,6 +147,37 @@
 		return str.substring(0, query) + (paramStr.length ? '?' + paramStr.join('&') : '');
 	}
 
+	function removeProtocol(url)
+	{
+		return url.replace(/^https?:\/\//,'');
+	}
+
+	function removeEdgeSlashes(str)
+	{
+		return str.replace(/^\/+|\/+$/g,'');
+	}
+
+	function compareURLToKey(url,key)
+	{
+		url = removeProtocol(url);
+		key = removeProtocol(key);
+
+		return key.length > 0 && url.slice(0,key.length) === key
+	}
+
+	function redirectURL(currUrl, toKey, fromKey)
+	{
+		var protocol = JSMTS.force_protocol === 'none' ? window.location.protocol : JSMTS.force_protocol + ':', path;
+		
+		currUrl = removeProtocol(currUrl);
+		toKey = removeProtocol(toKey);
+		fromKey = removeProtocol(fromKey);
+		
+		path = currUrl.replace(new RegExp('^' + escapeRegex(fromKey), 'i'), '');
+
+		return protocol + '//' + removeEdgeSlashes(toKey) + '/' + removeEdgeSlashes(path);
+	}
+
 	// cookie manipulation methods taken from http://www.quirksmode.org/js/cookies.html
 
 	function createCookie(name, value, days)
@@ -225,9 +256,9 @@
 				var topLevelUrl = window.location.protocol + '//' + window.location.href.split(/\/\/(.*)?/)[1],
 					redirUrl;
 				if (CURRENT_SITE_TYPE == FLAG_TABLET) {
-					redirUrl = JSMTS.key + topLevelUrl.replace(new RegExp('^' + escapeRegex(JSMTS.key2), 'i'), '');
+					redirUrl = redirectURL(topLevelUrl, JSMTS.key, JSMTS.key2);
 				} else {
-					redirUrl = JSMTS.key + topLevelUrl.replace(new RegExp('^' + escapeRegex(JSMTS.base), 'i'), '');
+					redirUrl = redirectURL(topLevelUrl, JSMTS.key, JSMTS.base);
 				}
 				window.location.replace(redirUrl);
 				break;
@@ -244,9 +275,9 @@
 				var topLevelUrl = window.location.protocol + '//' + window.location.href.split(/\/\/(.*)?/)[1],
 					redirUrl;
 				if (CURRENT_SITE_TYPE == FLAG_MOBILE) {
-					redirUrl = JSMTS.key2 + topLevelUrl.replace(new RegExp('^' + escapeRegex(JSMTS.key), 'i'), '');
+					redirUrl = redirectURL(topLevelUrl, JSMTS.key2, JSMTS.key);
 				} else {
-					redirUrl = JSMTS.key2 + topLevelUrl.replace(new RegExp('^' + escapeRegex(JSMTS.base), 'i'), '');
+					redirUrl = redirectURL(topLevelUrl, JSMTS.key2, JSMTS.base);
 				}
 				window.location.replace(redirUrl);
 				break;
@@ -264,15 +295,13 @@
 				}
 				break;
 			case 'r':
-				var host = window.location.href.split(/\/\/(.*)?/)[1],
-					baseHost = JSMTS.base.split(/\/\/(.*)?/)[1],
-					topLevelUrl = window.location.protocol + '//' + host,
+				var topLevelUrl = window.location.protocol + '//' + window.location.href.split(/\/\/(.*)?/)[1],
 					redirUrl;
-				if (host.slice(0,baseHost.length) !== baseHost) {
+				if (!compareURLToKey(topLevelUrl,JSMTS.base)) {
 					if (CURRENT_SITE_TYPE == FLAG_MOBILE) {
-						redirUrl = window.location.protocol + '//' + baseHost + host.replace(new RegExp('^' + escapeRegex(JSMTS.key.split(/\/\/(.*)?/)[1]), 'i'), '');
+						redirUrl = redirectURL(topLevelUrl, JSMTS.base, JSMTS.key);
 					} else {
-						redirUrl = window.location.protocol + '//' + baseHost + host.replace(new RegExp('^' + escapeRegex(JSMTS.key2.split(/\/\/(.*)?/)[1]), 'i'), '');
+						redirUrl = redirectURL(topLevelUrl, JSMTS.base, JSMTS.key2);
 					}
 					window.location.replace(redirUrl);
 				}
@@ -281,5 +310,10 @@
 				// :TODO:
 				break;
 		}
+	}
+
+	// If we got to here without a redirection, double check the protocol if we are configured to force it
+	if (JSMTS.force_protocol !== 'none' && window.location.protocol !== JSMTS.force_protocol + ':') {
+		window.location.replace(JSMTS.force_protocol + '://' + removeProtocol(window.location.href));
 	}
 })();

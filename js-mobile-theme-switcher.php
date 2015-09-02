@@ -5,7 +5,7 @@ Plugin URI: https://github.com/pospi/wp-js-mobile-theme-switcher
 Author: Map Digital
 Author URI: http://mapdigital.com.au/
 Description: Plugin for serving different themes to mobile websites. Browser detection is JavaScript-driven, so this plugin is compatible with WPEngine hosting.
-Version: 1.0
+Version: 1.2
 */
 
 /**
@@ -19,10 +19,11 @@ Version: 1.0
  */
 abstract class JSMobileThemeSwitcher
 {
-	const SCRIPT_VERSION = '1.3';
+	const SCRIPT_VERSION = '1.2';
 
 	private static $options;
 	private static $themes;
+	private static $url;
 
 	const FLAG_MOBILE = 'm';
 	const FLAG_TABLET = 't';
@@ -115,6 +116,7 @@ abstract class JSMobileThemeSwitcher
 				base : '<?php echo get_option('siteurl'); // :IMPORTANT: use option directly to avoid our own filters ?>',
 				canonical : <?php echo ($opts['state_method'] == 'r' && $opts['do_canonical']) ? 1 : 0; ?>,
 				set_state : <?php echo $opts['do_flag'] ? 1 : 0; ?>,
+				force_protocol : '<?php echo $opts["force_protocol"] ? $opts["force_protocol"] : "none"; ?>',
 				recheck_timeout : <?php echo !empty($opts['flag_timeout']) ? $opts['flag_timeout'] : 0; ?>
 			};
 		</script>
@@ -198,9 +200,9 @@ abstract class JSMobileThemeSwitcher
 				return isset($_COOKIE[$opts['state_key']]) ? $_COOKIE[$opts['state_key']] : null;
 			case 'r':
 				$hostAndScheme = isset($_SERVER['HTTP_HOST']) ? (is_ssl() ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] : '';
-				if ($hostAndScheme == $opts['state_key']) {
+				if (self::checkURLAgainstKey($opts['state_key'])) {
 					return self::FLAG_MOBILE;
-				} else if ($hostAndScheme == $opts['state_key2']) {
+				} else if (self::checkURLAgainstKey($opts['state_key2'])) {
 					return self::FLAG_TABLET;
 				}
 				return self::FLAG_DESKTOP;
@@ -245,7 +247,7 @@ abstract class JSMobileThemeSwitcher
 				$link = get_comments_pagenum_link($page);
 			}
 		} else {
-			$link = (is_ssl() ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+			$link = self::getURL();
 		}
 
 		echo '<link rel="canonical" href="' . self::mungeCanonicalUrl($link, true) . '" />' . "\n";
@@ -254,10 +256,10 @@ abstract class JSMobileThemeSwitcher
 	// alter all altered URLs back to main site for canonical tags
 	public static function alterCanonicalLink($link)
 	{
-		return self::mungeCanonicalUrl($link, true, true);
+		return self::mungeCanonicalUrl($link, true);
 	}
 
-	private static function mungeCanonicalUrl($link, $reverse = false, $filter = false)
+	private static function mungeCanonicalUrl($link, $reverse = false)
 	{
 		$mode = self::getPersistedOverrideValue();
 		$opts = self::getOptions();
@@ -267,15 +269,13 @@ abstract class JSMobileThemeSwitcher
 		}
 
 		if ($reverse) {
-			list($search, $replace) = self::getURLSearchRegexes($mode, self::FLAG_DESKTOP, $filter);
+			return self::getRedirectURL($mode, self::FLAG_DESKTOP, $link);
 		} else {
-			list($search, $replace) = self::getURLSearchRegexes(self::FLAG_DESKTOP, $mode, $filter);
+			return self::getRedirectURL(self::FLAG_DESKTOP, $mode, $link);
 		}
-
-		return preg_replace($search, $replace, $link);
 	}
 
-	private static function getURLSearchRegexes($currentMode, $desiredMode, $filter = false)
+	private static function getURLSearchRegexes($currentMode, $desiredMode)
 	{
 		$opts = self::getOptions();
 
@@ -291,10 +291,6 @@ abstract class JSMobileThemeSwitcher
 				break;
 		}
 
-		if ($filter) {
-			$search = apply_filters('JSMTS_URL_search',$search,$currentMode,$desiredMode,$opts);
-		}
-
 		switch ($desiredMode) {
 			case self::FLAG_MOBILE:
 				$replace = $opts['state_key'];
@@ -307,11 +303,26 @@ abstract class JSMobileThemeSwitcher
 				break;
 		}
 
-		if ($filter) {
-			$replace = apply_filters('JSMTS_URL_replace',$replace,$currentMode,$desiredMode,$opts);
+		return array($search, $replace);
+	}
+
+	private static function getRedirectURL($fromState, $toState, $url = false)
+	{
+		if (false === $url) {
+			$url = self::getURL();
+		}
+		list($search, $replace) = self::getURLSearchRegexes($fromState, $toState);
+		$search = self::removeProtocol($search);
+		$replace = self::removeProtocol($replace);
+		$url = self::removeProtocol($url);
+		$opts = self::getOptions();
+
+		$protocol = $opts['force_protocol'];
+		if (!in_array($protocol, array('http','https'))) {
+			$protocol = is_ssl() ? 'https' : 'http';
 		}
 
-		return array($search, $replace);
+		return $protocol . '://' . preg_replace($search, $replace, $url);
 	}
 
 	//----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -351,8 +362,7 @@ abstract class JSMobileThemeSwitcher
 				// :TODO:
 				return $url;
 			case 'r':
-				list($search, $replace) = self::getURLSearchRegexes($fromState, $toState);
-				return preg_replace($search, $replace, $url);
+				return self::getRedirectURL($fromState, $toState, $url);
 			default:
 				return add_query_arg($opts['state_key'], $toState, $url);
 		}
@@ -374,6 +384,7 @@ abstract class JSMobileThemeSwitcher
 				'do_canonical'	=> get_option('jsmts_do_canonical'),
 				'do_flag'		=> get_option('jsmts_do_flag'),
 				'flag_timeout'	=> get_option('jsmts_flag_timeout'),
+				'force_protocol'=> get_option('jsmts_force_protocol'),
 			);
 		}
 		return self::$options;
@@ -393,6 +404,36 @@ abstract class JSMobileThemeSwitcher
 		}
 
 		return self::$themes;
+	}
+
+	public static function getURL()
+	{
+		if (!isset(self::$url)) {
+			if (!isset($_SERVER['HTTP_HOST']) || !isset($_SERVER['REQUEST_URI'])) {
+				self::$url = ''; // Cannot determine
+			} else {
+				self::$url = 'http' . (is_ssl() ? 's://' : '://') . trailingslashit($_SERVER['HTTP_HOST']) . trailingslashit(ltrim( $_SERVER['REQUEST_URI'], '/\\' ));
+			}
+		}
+		return self::$url;
+	}
+
+	public static function removeProtocol($url)
+	{
+		return preg_replace('/(^https?:\/\/)/i', '', $url);
+	}
+
+	private static function checkURLAgainstKey($key, $url = false)
+	{
+		if (false === $url) {
+			$url = self::getURL();
+		}
+		$key = self::removeProtocol($key);
+		if (strlen($key) < 1) {
+			return false;
+		}
+		$url = substr(self::removeProtocol($url),0,strlen($key));
+		return (strcasecmp($url,$key) === 0);
 	}
 
 	//----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -415,6 +456,7 @@ abstract class JSMobileThemeSwitcher
 			update_option('jsmts_mobile_theme', empty($_POST['mobile_theme']) ? false : $_POST['mobile_theme']);
 			update_option('jsmts_tablet_theme', empty($_POST['tablet_theme']) ? false : $_POST['tablet_theme']);
 			update_option('jsmts_state_method', $_POST['state_method']);
+			update_option('jsmts_force_protocol', $_POST['force_protocol']);
 			update_option('jsmts_state_key', $_POST['state_key']);
 			update_option('jsmts_state_key2', $_POST['state_key2']);
 			update_option('jsmts_do_canonical', !empty($_POST['do_canonical']));
@@ -450,6 +492,7 @@ abstract class JSMobileThemeSwitcher
 		update_option('jsmts_state_key', 'v');
 		update_option('jsmts_do_flag', true);
 		update_option('jsmts_flag_timeout', 0);
+		update_option('jsmts_force_protocol', 'none');
 	}
 
 	public static function runUninstall()
@@ -462,6 +505,7 @@ abstract class JSMobileThemeSwitcher
 		delete_option('jsmts_do_canonical');
 		delete_option('jsmts_do_flag');
 		delete_option('jsmts_flag_timeout');
+		delete_option('jsmts_force_protocol');
 	}
 }
 JSMobileThemeSwitcher::init();
