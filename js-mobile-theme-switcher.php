@@ -69,7 +69,7 @@ abstract class JSMobileThemeSwitcher
 
 				if (get_option('jsmts_do_canonical')) {
 					$plugins = get_option('active_plugins');
-					if (in_array('wordpress-seo/wp-seo.php', $plugins)) {
+					if (count(@array_intersect(array('wordpress-seo/wp-seo.php','wordpress-seo-premium/wp-seo-premium.php'), $plugins)) > 0) {
 					// WPSEO COMPATIBILITY
 						add_filter('wpseo_canonical', array($cls, 'alterCanonicalLink'));
 					} else {
