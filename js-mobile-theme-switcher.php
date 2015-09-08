@@ -113,7 +113,7 @@ abstract class JSMobileThemeSwitcher
 				method : '<?php echo $opts['state_method']; ?>',
 				key : '<?php echo $opts['state_key']; ?>',
 				key2 : '<?php echo $opts['state_key2']; ?>',
-				base : '<?php echo get_option('siteurl'); // :IMPORTANT: use option directly to avoid our own filters ?>',
+				base : '<?php echo self::siteurl(); // :IMPORTANT: use option directly to avoid our own filters ?>',
 				canonical : <?php echo ($opts['state_method'] == 'r' && $opts['do_canonical']) ? 1 : 0; ?>,
 				set_state : <?php echo $opts['do_flag'] ? 1 : 0; ?>,
 				force_protocol : '<?php echo $opts["force_protocol"] ? $opts["force_protocol"] : "none"; ?>',
@@ -281,25 +281,25 @@ abstract class JSMobileThemeSwitcher
 
 		switch ($currentMode) {
 			case self::FLAG_MOBILE:
-				$search = '@^' . preg_quote($opts['state_key'], '@') . '@i';
+				$search = '@^' . preg_quote(self::removeProtocol($opts['state_key']), '@') . '@i';
 				break;
 			case self::FLAG_TABLET:
-				$search = '@^' . preg_quote($opts['state_key2'], '@') . '@i';
+				$search = '@^' . preg_quote(self::removeProtocol($opts['state_key2']), '@') . '@i';
 				break;
 			default:
-				$search = '@^' . preg_quote(get_option('siteurl'), '@') . '@i';
+				$search = '@^' . preg_quote(self::removeProtocol(self::siteurl()), '@') . '@i';
 				break;
 		}
 
 		switch ($desiredMode) {
 			case self::FLAG_MOBILE:
-				$replace = $opts['state_key'];
+				$replace = self::removeProtocol($opts['state_key']);
 				break;
 			case self::FLAG_TABLET:
-				$replace = $opts['state_key2'];
+				$replace = self::removeProtocol($opts['state_key2']);
 				break;
 			default:
-				$replace = get_option('siteurl');
+				$replace = self::removeProtocol(self::siteurl());
 				break;
 		}
 
@@ -312,8 +312,6 @@ abstract class JSMobileThemeSwitcher
 			$url = self::getURL();
 		}
 		list($search, $replace) = self::getURLSearchRegexes($fromState, $toState);
-		$search = self::removeProtocol($search);
-		$replace = self::removeProtocol($replace);
 		$url = self::removeProtocol($url);
 		$opts = self::getOptions();
 
@@ -416,6 +414,15 @@ abstract class JSMobileThemeSwitcher
 			}
 		}
 		return self::$url;
+	}
+
+	public static function siteurl()
+	{
+		if (defined('DOMAIN_MAPPING') && function_exists('get_original_url')) {
+			return get_original_url('siteurl');
+		} else {
+			return get_option('siteurl');
+		}
 	}
 
 	public static function removeProtocol($url)
