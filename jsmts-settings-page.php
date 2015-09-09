@@ -97,6 +97,16 @@ natcasesort($themes);
 		<input type="text" name="flag_timeout" id="jsmts_flag_timeout"<?php if ($options['flag_timeout']) echo ' value="'.$options['flag_timeout'].'"'; ?> />
 	</label>
 </p>
+<p id="forcechecking">
+	<span>Forced Themes (set with the query parameter 'jsmts_force') remain in effect:</span><br />
+	<label><input type="radio" name="force_type" value="always"<?php if (!$options['remember_force']) echo ' checked="checked"'; ?> /> For the page they are requested</label><br />
+	<label><input type="radio" name="force_type" value="closed"<?php if ($options['remember_force'] && !$options['force_timeout']) echo ' checked="checked"'; ?> /> Until the browser is closed</label><br />
+	<label><input type="radio" name="force_type" value="timed"<?php if ($options['remember_force'] && $options['force_timeout']) echo ' checked="checked"'; ?> /> For a set time</label><br />
+	<label id="forceinterval">
+		<span>Time to remain in effect (min)</span>:
+		<input type="text" name="force_timeout" id="jsmts_force_timeout"<?php if ($options['force_timeout']) echo ' value="'.$options['force_timeout'].'"'; ?> />
+	</label>
+</p>
 
 <p>
 	<input type="submit" name="save" value="Update settings" />
@@ -110,18 +120,19 @@ natcasesort($themes);
 	#jsmts-settings blockquote {
 		color: #999;
 	}
-	#rechecking label {
+	#rechecking label,
+	#forcechecking label {
 		margin-left: 2em;
 	}
 </style>
 
 <script type="text/javascript">
 (function($) {
-	function isTimeoutChecking(timed) {
+	function isTimeoutChecking($el,timed) {
 		if (timed) {
-			$('#checkinterval').show();
+			$el.show();
 		} else {
-			$('#checkinterval').hide();
+			$el.hide();
 		}
 	}
 
@@ -151,9 +162,14 @@ natcasesort($themes);
 	}).change();	// set initial state
 
 	$('#rechecking input[type=radio]').click(function() {
-		isTimeoutChecking($('#rechecking input[type=radio]:checked').val() == 'timed');
+		isTimeoutChecking($('#checkinterval'), $('#rechecking input[type=radio]:checked').val() == 'timed');
 	});
-	isTimeoutChecking($('#rechecking input[type=radio]:checked').val() == 'timed');
+	isTimeoutChecking($('#checkinterval'), $('#rechecking input[type=radio]:checked').val() == 'timed');
+
+	$('#forcechecking input[type=radio]').click(function() {
+		isTimeoutChecking($('#forceinterval'), $('#forcechecking input[type=radio]:checked').val() == 'timed');
+	});
+	isTimeoutChecking($('#forceinterval'), $('#forcechecking input[type=radio]:checked').val() == 'timed');
 })(jQuery);
 </script>
 <?php

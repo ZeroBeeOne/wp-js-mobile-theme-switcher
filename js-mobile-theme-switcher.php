@@ -117,7 +117,9 @@ abstract class JSMobileThemeSwitcher
 				canonical : <?php echo ($opts['state_method'] == 'r' && $opts['do_canonical']) ? 1 : 0; ?>,
 				set_state : <?php echo $opts['do_flag'] ? 1 : 0; ?>,
 				force_protocol : '<?php echo $opts["force_protocol"] ? $opts["force_protocol"] : "none"; ?>',
-				recheck_timeout : <?php echo !empty($opts['flag_timeout']) ? $opts['flag_timeout'] : 0; ?>
+				recheck_timeout : <?php echo !empty($opts['flag_timeout']) ? $opts['flag_timeout'] : 0; ?>,
+				force_timeout : <?php echo !empty($opts['flag_timeout']) ? $opts['flag_timeout'] : 0; ?>,
+				remember_force : <?php echo $opts['remember_force'] ? 1 : 0; ?>
 			};
 		</script>
 		<?php
@@ -383,6 +385,8 @@ abstract class JSMobileThemeSwitcher
 				'do_flag'		=> get_option('jsmts_do_flag'),
 				'flag_timeout'	=> get_option('jsmts_flag_timeout'),
 				'force_protocol'=> get_option('jsmts_force_protocol'),
+				'force_timeout'=> get_option('jsmts_force_timeout'),
+				'remember_force'=> get_option('jsmts_remember_force'),
 			);
 		}
 		return self::$options;
@@ -475,6 +479,16 @@ abstract class JSMobileThemeSwitcher
 					update_option('jsmts_flag_timeout', 0);
 				} else {
 					update_option('jsmts_flag_timeout', $_POST['flag_timeout']);
+				}
+			}
+
+			$doForceFlag = $_POST['remember_force'] != 'always';
+			update_option('jsmts_remember_force', (int)$doForceFlag);
+			if ($doForceFlag) {
+				if ($_POST['remember_force'] == 'closed') {
+					update_option('jsmts_force_timeout', 0);
+				} else {
+					update_option('jsmts_force_timeout', $_POST['force_timeout']);
 				}
 			}
 

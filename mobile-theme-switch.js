@@ -2,8 +2,9 @@
 	// Please note: this whole API assumes the default site you are running is a Desktop version.
 
 	var IS_MOBILE, IS_TABLET, PLATFORM_DETECTED = false,
-		CURRENT_SITE_TYPE,
+		CURRENT_SITE_TYPE, FORCE_SITE_TYPE, FORCE_SITE_KEY = 'jsmts_force',
 		CHECKED_COOKIE_NAME = 'jsmts_checked',
+		FORCED_COOKIE_NAME = 'jsmts_forced',
 		FLAG_MOBILE = 'm',
 		FLAG_TABLET = 't',
 		FLAG_DESKTOP = 'd';
@@ -59,6 +60,30 @@
 			case 'c':
 				// :TODO:
 				break;
+		}
+	}
+
+	function detectOverride()
+	{
+		var qs = getQuery(window.location.href);
+
+		// Get a new Forced theme from the query
+		if (typeof qs[FORCE_SITE_KEY] !== 'undefined') {
+			if (qs[FORCE_SITE_KEY] == FLAG_MOBILE || qs[FORCE_SITE_KEY] == FLAG_TABLET || qs[FORCE_SITE_KEY] == FLAG_DESKTOP) {
+				if (JSMTS.remember_force) {
+					createCookie(FORCED_COOKIE_NAME,qs[FORCE_SITE_KEY],JSMTS.force_timeout);
+				}
+				FORCE_SITE_TYPE = qs[FORCE_SITE_KEY];
+			} else {
+				eraseCookie(FORCED_COOKIE_NAME);
+				FORCE_SITE_TYPE = '';
+			}
+		// ... Or from the cookie if we have one previously saved
+		} else if (JSMTS.remember_force) {
+			FORCE_SITE_TYPE = readCookie(FORCED_COOKIE_NAME) || '';		
+		// ... Or assume none.
+		} else {
+			FORCE_SITE_TYPE = '';
 		}
 	}
 
@@ -242,12 +267,13 @@
 
 	// sniff out the platform and active site
 
+	detectOverride();
 	detectPlatform();
 	detectLocation();
 
 	// check whether we are in the correct state, and set it if not
 
-	if (JSMTS.check_mobile && IS_MOBILE && CURRENT_SITE_TYPE != FLAG_MOBILE) {
+	if (JSMTS.check_mobile && ((FORCE_SITE_TYPE == '' && IS_MOBILE) || FORCE_SITE_TYPE == FLAG_MOBILE) && CURRENT_SITE_TYPE != FLAG_MOBILE) {
 		switch (JSMTS.method) {
 			case 'qs':
 				window.location.replace(appendQuery(removeQuery(window.location.href, JSMTS.key), JSMTS.key, FLAG_MOBILE));
@@ -266,7 +292,7 @@
 				// :TODO:
 				break;
 		}
-	} else if (JSMTS.check_tablet && IS_TABLET && CURRENT_SITE_TYPE != FLAG_TABLET) {
+	} else if (JSMTS.check_tablet && ((FORCE_SITE_TYPE == '' && IS_TABLET) || FORCE_SITE_TYPE == FLAG_TABLET) && CURRENT_SITE_TYPE != FLAG_TABLET) {
 		switch (JSMTS.method) {
 			case 'qs':
 				window.location.replace(appendQuery(removeQuery(window.location.href, JSMTS.key), JSMTS.key, FLAG_TABLET));
@@ -285,7 +311,7 @@
 				// :TODO:
 				break;
 		}
-	} else if (!(JSMTS.check_mobile && IS_MOBILE) && !(JSMTS.check_tablet && IS_TABLET)) {
+	} else if ((FORCE_SITE_TYPE == FLAG_DESKTOP || (FORCE_SITE_TYPE == '' && !(JSMTS.check_mobile && IS_MOBILE) && !(JSMTS.check_tablet && IS_TABLET))) && CURRENT_SITE_TYPE != FLAG_DESKTOP) {
 		switch (JSMTS.method) {
 			case 'qs':
 				var qs = getQuery(window.location.href),
