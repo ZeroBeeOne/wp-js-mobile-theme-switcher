@@ -7,7 +7,8 @@
 		FORCED_COOKIE_NAME = 'jsmts_forced',
 		FLAG_MOBILE = 'm',
 		FLAG_TABLET = 't',
-		FLAG_DESKTOP = 'd';
+		FLAG_DESKTOP = 'd',
+		MAIN_DOMAIN;
 
 	// Before doing anything, let's create some API other code can use to make decisions based on platform :D
 	function detectPlatform()
@@ -203,6 +204,25 @@
 		return protocol + '//' + removeEdgeSlashes(toKey) + '/' + removeEdgeSlashes(path);
 	}
 
+	// http://rossscrivener.co.uk/blog/javascript-get-domain-exclude-subdomain
+	// Added caching of result
+	function getDomain()
+	{
+		if (typeof MAIN_DOMAIN !== 'string') {	
+			var i = 0,
+				domain = document.domain,
+				p = domain.split('.'),
+				s = '_gd'+(new Date()).getTime();
+			while(i<(p.length-1) && document.cookie.indexOf(s+'='+s)==-1){
+				domain = p.slice(-1-(++i)).join('.');
+				document.cookie = s+"="+s+";domain="+domain+";";
+			}
+			document.cookie = s+"=;expires=Thu, 01 Jan 1970 00:00:01 GMT;domain="+domain+";";
+			MAIN_DOMAIN = domain;
+		}
+		return MAIN_DOMAIN;
+	}
+
 	// cookie manipulation methods taken from http://www.quirksmode.org/js/cookies.html
 
 	function createCookie(name, value, days)
@@ -213,7 +233,7 @@
 			var expires = "; expires="+date.toGMTString();
 		}
 		else var expires = "";
-		document.cookie = name+"="+value+expires+"; path=/";
+		document.cookie = name+"="+value+expires+"; path=/;domain="+getDomain();
 	}
 
 	function readCookie(name)
@@ -240,7 +260,8 @@
 		'removeQuery' : removeQuery,
 		'createCookie' : createCookie,
 		'readCookie' : readCookie,
-		'eraseCookie' : eraseCookie
+		'eraseCookie' : eraseCookie,
+		'getDomain' : getDomain
 	};
 
 	function escapeRegex(s) 
