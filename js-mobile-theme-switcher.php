@@ -118,7 +118,7 @@ abstract class JSMobileThemeSwitcher
 				set_state : <?php echo $opts['do_flag'] ? 1 : 0; ?>,
 				force_protocol : '<?php echo $opts["force_protocol"] ? $opts["force_protocol"] : "none"; ?>',
 				recheck_timeout : <?php echo !empty($opts['flag_timeout']) ? $opts['flag_timeout'] : 0; ?>,
-				force_timeout : <?php echo !empty($opts['flag_timeout']) ? $opts['flag_timeout'] : 0; ?>,
+				force_timeout : <?php echo !empty($opts['force_timeout']) ? $opts['force_timeout'] : 0; ?>,
 				remember_force : <?php echo $opts['remember_force'] ? 1 : 0; ?>
 			};
 		</script>
