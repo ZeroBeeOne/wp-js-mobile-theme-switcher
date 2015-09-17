@@ -134,7 +134,7 @@
 			return {};
 		}
 
-		var qs = url.substring(query + 1).split('&'),
+		var qs = url.substring(query + 1).split('#')[0].split('&'),
 			i = 0, l = qs.length,
 			result = {};
 
